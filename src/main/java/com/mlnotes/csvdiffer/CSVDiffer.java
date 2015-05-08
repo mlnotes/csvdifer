@@ -18,7 +18,7 @@ public class CSVDiffer {
 			dist[oStart][mStart] = 
 					distance(original, modified, oStart+1, mStart+1, dist);
 		} else {
-			dist[oStart][mStart] = Math.min(Math.min(
+			dist[oStart][mStart] = 1 + Math.min(Math.min(
 					distance(original, modified, oStart+1, mStart, dist),
 					distance(original, modified, oStart, mStart+1, dist)),
 					distance(original, modified, oStart+1, mStart+1, dist));			
@@ -37,32 +37,73 @@ public class CSVDiffer {
 			}
 		}
 		for(int i = 0; i <= m; ++i) {
-			dist[i][n] = 0;
+			dist[i][n] = m-i;
 		}
 		for(int j = 0; j <= n; ++j) {
-			dist[m][j] = 0;
+			dist[m][j] = n-j;
 		}
 		int delta = distance(original, modified, 0, 0, dist);
 		System.out.printf("Distance:%d%n", delta);
 		
 		List<Pair<Integer, Integer>> changes = 
 				new ArrayList<Pair<Integer, Integer>>();
+		
+		//output(dist);
+		
 		findChanges(dist, 0, 0, changes);
 		for(Pair<Integer, Integer> entry : changes) {
 			System.out.printf("%d => %d%n", entry.getLeft(), entry.getRight());
 		}
 	}
 	
-	private void findChanges(int[][] dist, int i, int j,
+	private void findChanges(int[][] dist, int x, int y,
 			List<Pair<Integer, Integer>> changes) {
-		// TODO compute changes basing on dist table
-		if(dist.length == 0 || i >= dist.length || j >= dist[0].length) {
+		// TODO how to find changes chain !
+		int m = dist.length - 1;
+		int n = dist[0].length - 1;
+		
+		// find the eage
+		if(x == m-1 && y == n-1) {
+			if(dist[x][y] == 1){
+				changes.add(new Pair<Integer, Integer>(x, y));
+			}
 			return;
+		}else if(x == m-1) {
+			if(dist[x][y+1] != -1) {
+				changes.add(new Pair<Integer, Integer>(-1, y));
+				y++;
+			} else {
+				for(int i = dist[x][y]; i > 0; --i) {
+					changes.add(new Pair<Integer, Integer>(-1, n-i));
+				}
+				return;
+			}
+		} else if(y == n-1) {
+			if(dist[x+1][y] != -1) {
+				changes.add(new Pair<Integer, Integer>(x, -1));
+				x++;
+			} else {
+				for(int i = dist[x][y]; i > 0; --i) {
+					changes.add(new Pair<Integer, Integer>(m-i, -1));
+				}
+				return;
+			}
+		} else if(dist[x][y] == dist[x+1][y+1]+1) {
+			changes.add(new Pair<Integer, Integer>(x, y));
+			x++;
+			y++;
+		} else if(dist[x][y] == dist[x+1][y]+1) {
+			changes.add(new Pair<Integer, Integer>(x, -1));
+			x++;
+		} else if(dist[x][y] == dist[x][y+1]+1) {
+			changes.add(new Pair<Integer, Integer>(-1, y));
+			y++;
+		} else if(dist[x][y] == dist[x+1][y+1]) {
+			x++;
+			y++;
 		}
 		
-		
-		
-		
+		findChanges(dist, x, y, changes);
 	}
 	
 	public void compare(String fileA, String fileB) throws IOException {
@@ -84,12 +125,23 @@ public class CSVDiffer {
 		return lines;
 	}
 	
+	private void output(int[][] dist) {
+		for(int i = 0; i < dist.length; ++i) {
+			for(int j = 0; j < dist[i].length; ++j) {
+				System.out.print(dist[i][j] + ", ");
+			}
+			System.out.println();
+		}
+	}
+	
 	public static void main(String[] args) throws IOException {
 		CSVDiffer differ = new CSVDiffer();
 		
-		String original = "D:\\workspaces\\java\\a.txt";
-		String modified = "D:\\workspaces\\java\\b.txt";
-		
+		String original = "/usr/local/google/home/hanfeng/Downloads/name.csv";
+		String modified = "/usr/local/google/home/hanfeng/Downloads/name2.csv";
+		//String original = "data1/1.txt";
+		//String modified = "data1/2.txt";
+
 		differ.compare(original, modified);
 	}
 	

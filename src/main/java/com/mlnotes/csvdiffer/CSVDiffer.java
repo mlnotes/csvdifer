@@ -7,6 +7,68 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CSVDiffer {
+	public void compare(String fileA, String fileB) throws IOException {
+		List<String> linesA = fileToLines(fileA);
+		List<String> linesB = fileToLines(fileB);
+		List<Pair> modifiedRows = diff(linesA, linesB);
+		
+		for(Pair pair : modifiedRows) {
+			System.out.printf("[%d <=> %d]%n", pair.getLeft(), 
+					pair.getRight());
+			
+			if(pair.left != -1 && pair.right != -1) {
+				List<Pair> modifiedCells = diff(
+						splitCSVRow(linesA.get(pair.getLeft())),
+						splitCSVRow(linesB.get(pair.getRight())));
+				
+				for(Pair p : modifiedCells) {
+					System.out.printf("  [%d <=> %d],", p.getLeft(), 
+							p.getRight());
+				}
+				System.out.println();
+			}
+		}
+	}
+	
+	private List<String> fileToLines(String fileName) throws IOException {
+		BufferedReader reader = new BufferedReader(new FileReader(fileName));		
+		List<String> lines = new ArrayList<String>();
+		String line;
+		while((line = reader.readLine()) != null) {
+			lines.add(line);
+		}
+		
+		reader.close();
+		return lines;
+	}
+	
+	private List<Pair> diff(List<String> original, 
+			List<String> modified) {
+		int m = original.size();
+		int n = modified.size();
+		int[][] dist = new int[m+1][n+1];
+		for(int i = 0; i < m; ++i) {
+			for(int j = 0; j < n; ++j) {
+				dist[i][j] = -1;
+			}
+		}
+		for(int i = 0; i <= m; ++i) {
+			dist[i][n] = m-i;
+		}
+		for(int j = 0; j <= n; ++j) {
+			dist[m][j] = n-j;
+		}
+		//int delta = distance(original, modified, 0, 0, dist);
+		// TODO add some log
+		distance(original, modified, 0, 0, dist);
+		
+		List<Pair> changes = 
+				new ArrayList<Pair>();
+		
+		findChanges(dist, 0, 0, changes);
+		
+		return changes;
+	}
 	
 	private int distance(List<String> original, List<String> modified, 
 			int oStart, int mStart, int[][] dist) {
@@ -23,41 +85,11 @@ public class CSVDiffer {
 					distance(original, modified, oStart, mStart+1, dist)),
 					distance(original, modified, oStart+1, mStart+1, dist));			
 		}
-		
 		return dist[oStart][mStart];
 	}
 	
-	private void diff(List<String> original, List<String> modified) {
-		int m = original.size();
-		int n = modified.size();
-		int[][] dist = new int[m+1][n+1];
-		for(int i = 0; i < m; ++i) {
-			for(int j = 0; j < n; ++j) {
-				dist[i][j] = -1;
-			}
-		}
-		for(int i = 0; i <= m; ++i) {
-			dist[i][n] = m-i;
-		}
-		for(int j = 0; j <= n; ++j) {
-			dist[m][j] = n-j;
-		}
-		int delta = distance(original, modified, 0, 0, dist);
-		System.out.printf("Distance:%d%n", delta);
-		
-		List<Pair<Integer, Integer>> changes = 
-				new ArrayList<Pair<Integer, Integer>>();
-		
-		//output(dist);
-		
-		findChanges(dist, 0, 0, changes);
-		for(Pair<Integer, Integer> entry : changes) {
-			System.out.printf("%d => %d%n", entry.getLeft(), entry.getRight());
-		}
-	}
-	
 	private void findChanges(int[][] dist, int x, int y,
-			List<Pair<Integer, Integer>> changes) {
+			List<Pair> changes) {
 		// TODO how to find changes chain !
 		int m = dist.length - 1;
 		int n = dist[0].length - 1;
@@ -65,38 +97,38 @@ public class CSVDiffer {
 		// find the eage
 		if(x == m-1 && y == n-1) {
 			if(dist[x][y] == 1){
-				changes.add(new Pair<Integer, Integer>(x, y));
+				changes.add(new Pair(x, y));
 			}
 			return;
 		}else if(x == m-1) {
 			if(dist[x][y+1] != -1) {
-				changes.add(new Pair<Integer, Integer>(-1, y));
+				changes.add(new Pair(-1, y));
 				y++;
 			} else {
 				for(int i = dist[x][y]; i > 0; --i) {
-					changes.add(new Pair<Integer, Integer>(-1, n-i));
+					changes.add(new Pair(-1, n-i));
 				}
 				return;
 			}
 		} else if(y == n-1) {
 			if(dist[x+1][y] != -1) {
-				changes.add(new Pair<Integer, Integer>(x, -1));
+				changes.add(new Pair(x, -1));
 				x++;
 			} else {
 				for(int i = dist[x][y]; i > 0; --i) {
-					changes.add(new Pair<Integer, Integer>(m-i, -1));
+					changes.add(new Pair(m-i, -1));
 				}
 				return;
 			}
 		} else if(dist[x][y] == dist[x+1][y+1]+1) {
-			changes.add(new Pair<Integer, Integer>(x, y));
+			changes.add(new Pair(x, y));
 			x++;
 			y++;
 		} else if(dist[x][y] == dist[x+1][y]+1) {
-			changes.add(new Pair<Integer, Integer>(x, -1));
+			changes.add(new Pair(x, -1));
 			x++;
 		} else if(dist[x][y] == dist[x][y+1]+1) {
-			changes.add(new Pair<Integer, Integer>(-1, y));
+			changes.add(new Pair(-1, y));
 			y++;
 		} else if(dist[x][y] == dist[x+1][y+1]) {
 			x++;
@@ -106,32 +138,15 @@ public class CSVDiffer {
 		findChanges(dist, x, y, changes);
 	}
 	
-	public void compare(String fileA, String fileB) throws IOException {
-		List<String> linesA = fileToLines(fileA);
-		List<String> linesB = fileToLines(fileB);
-		
-		diff(linesA, linesB);
-	}
-	
-	private List<String> fileToLines(String fileName) throws IOException {
-		BufferedReader reader = new BufferedReader(new FileReader(fileName));		
-		List<String> lines = new ArrayList<String>();
-		String line;
-		while((line = reader.readLine()) != null) {
-			lines.add(line);
+	private List<String> splitCSVRow(String row) {
+		List<String> cells = new ArrayList<String>();
+		String[] parts = row.split(",");
+		for(String part : parts) {
+			cells.add(part);
 		}
-		
-		reader.close();
-		return lines;
-	}
-	
-	private void output(int[][] dist) {
-		for(int i = 0; i < dist.length; ++i) {
-			for(int j = 0; j < dist[i].length; ++j) {
-				System.out.print(dist[i][j] + ", ");
-			}
-			System.out.println();
-		}
+		// TODO how handle csv row splitting better
+		// for example if there is comma in cell
+		return cells;
 	}
 	
 	public static void main(String[] args) throws IOException {
@@ -139,23 +154,21 @@ public class CSVDiffer {
 		
 		String original = "/usr/local/google/home/hanfeng/Downloads/name.csv";
 		String modified = "/usr/local/google/home/hanfeng/Downloads/name2.csv";
-		//String original = "data1/1.txt";
-		//String modified = "data1/2.txt";
 
 		differ.compare(original, modified);
 	}
 	
-	public static class Pair<A, B> {
-		private A left;
-		private B right;
-		public Pair(A left, B right) {
+	public static class Pair {
+		private int left;
+		private int right;
+		public Pair(int left, int right) {
 			this.left = left;
 			this.right = right;
 		}
-		public A getLeft() {
+		public int getLeft() {
 			return left;
 		}
-		public B getRight() {
+		public int getRight() {
 			return right;
 		}
 	}

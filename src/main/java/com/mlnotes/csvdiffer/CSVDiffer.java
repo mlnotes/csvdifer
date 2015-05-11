@@ -59,6 +59,7 @@ public class CSVDiffer {
 			dist[m][j] = n-j;
 		}
 		//int delta = distance(original, modified, 0, 0, dist);
+		//System.out.printf("Distance: %d%n", delta);
 		// TODO add some log
 		distance(original, modified, 0, 0, dist);
 		
@@ -90,7 +91,10 @@ public class CSVDiffer {
 	
 	private void findChanges(int[][] dist, int x, int y,
 			List<Pair> changes) {
-		// TODO how to find changes chain !
+		if(dist[x][y] == 0) {
+			return;
+		}
+		
 		int m = dist.length - 1;
 		int n = dist[0].length - 1;
 		
@@ -152,8 +156,8 @@ public class CSVDiffer {
 	public static void main(String[] args) throws IOException {
 		CSVDiffer differ = new CSVDiffer();
 		
-		String original = "/usr/local/google/home/hanfeng/Downloads/name.csv";
-		String modified = "/usr/local/google/home/hanfeng/Downloads/name2.csv";
+		String original = "/usr/local/google/home/hanfeng/Downloads/test/name.csv";
+		String modified = "/usr/local/google/home/hanfeng/Downloads/test/name2.csv";
 
 		differ.compare(original, modified);
 	}
